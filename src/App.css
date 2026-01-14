@@ -537,4 +537,28 @@
   .iosSwitch.isOn .iosKnob{
     transform: translateX(18px);
   }
+
+  /* =========================
+   iOS PWA input zoom fix
+   (iOS는 input font-size가 16px 미만이면 포커스 시 자동 확대됨)
+   ========================= */
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+.input {
+  font-size: 16px; /* 기존 15px → 16px로 강제 */
+}
+
+/* =========================
+   iOS Safe Area (노치/홈바) 대응
+   ========================= */
+   .appRoot {
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    padding-top: max(22px, env(safe-area-inset-top));
+    padding-bottom: max(22px, env(safe-area-inset-bottom));
+  }
   
