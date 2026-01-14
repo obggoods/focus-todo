@@ -5,7 +5,7 @@ import GoalDetail from "./components/GoalDetail";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { STORAGE_KEY, normalizeGoals } from "./utils/storage";
 import { getInitialTheme, applyTheme, persistTheme } from "./utils/theme";
-import "./app.css";
+import "./App.css";
 
 export default function App() {
   const [theme, setTheme] = useState(getInitialTheme());
