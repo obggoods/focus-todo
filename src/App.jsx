@@ -1,26 +1,25 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Layout from "./components/Layout";
 import GoalList from "./components/GoalList";
 import GoalDetail from "./components/GoalDetail";
 import { useLocalStorage } from "./hooks/useLocalStorage";
-import { STORAGE_KEY, normalizeGoals } from "./utils/storage";
-import { getInitialTheme, applyTheme, persistTheme } from "./utils/theme";
+import {
+  CATEGORY_STORAGE_KEY,
+  STORAGE_KEY,
+  normalizeCategories,
+  normalizeGoals,
+} from "./utils/storage";
 import "./App.css";
 
 export default function App() {
-  const [theme, setTheme] = useState(getInitialTheme());
   const [goals, setGoals] = useLocalStorage(STORAGE_KEY, [], normalizeGoals);
+  const [categories, setCategories] = useLocalStorage(
+    CATEGORY_STORAGE_KEY,
+    [],
+    normalizeCategories
+  );
   const [activeGoalId, setActiveGoalId] = useState(null);
 
-  useEffect(() => {
-    applyTheme(theme);
-    persistTheme(theme);
-  }, [theme]);
-
-  const handleToggleTheme = () => {
-    setTheme((t) => (t === "dark" ? "light" : "dark"));
-  };
-  
   const activeGoal = useMemo(() => {
     if (!activeGoalId) return null;
     return goals.find((g) => g.id === activeGoalId) || null;
@@ -42,21 +41,22 @@ export default function App() {
     <Layout>
       {!activeGoal ? (
         <GoalList
-        goals={goals}
-        setGoals={setGoals}
-        onOpenGoal={openGoal}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-      />
+          goals={goals}
+          setGoals={setGoals}
+          categories={categories}
+          setCategories={setCategories}
+          onOpenGoal={openGoal}
+        />
       ) : (
         <GoalDetail
           goal={activeGoal}
+          categories={categories}
           onBack={backToList}
           onUpdateGoal={updateGoal}
           onDeleteGoal={deleteGoal}
         />
       )}
     </Layout>
-  );  
+  );
 
 }

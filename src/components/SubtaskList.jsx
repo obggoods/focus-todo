@@ -1,113 +1,226 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { uid } from "../utils/id";
 import SubtaskItem from "./SubtaskItem";
-import UndoToast from "./UndoToast";
 
-function calcProgress(goal) {
-  const total = goal.subtasks.length;
-  if (total === 0) return 0;
-  const done = goal.subtasks.filter((s) => s.done).length;
-  return Math.round((done / total) * 100);
+function calcTaskProgress(task) {
+  if (!Array.isArray(task.subtasks) || task.subtasks.length === 0) {
+    return task.done ? 100 : 0;
+  }
+
+  const done = task.subtasks.filter((s) => s.done).length;
+  return Math.round((done / task.subtasks.length) * 100);
 }
 
 export default function SubtaskList({ goal, onUpdateGoal }) {
-  const [text, setText] = useState("");
+  const [taskText, setTaskText] = useState("");
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [subtaskText, setSubtaskText] = useState("");
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [editingTaskText, setEditingTaskText] = useState("");
+  const [editingSubtaskId, setEditingSubtaskId] = useState(null);
+  const [editingSubtaskText, setEditingSubtaskText] = useState("");
 
-  // undo = { prevSubtasks, timerId, message }
-  const [undo, setUndo] = useState(null);
+  const selectedTask = useMemo(() => {
+    if (!selectedTaskId) return null;
+    return goal.tasks.find((task) => task.id === selectedTaskId) || null;
+  }, [goal.tasks, selectedTaskId]);
 
-  // 언마운트 시 타이머 정리
-  useEffect(() => {
-    return () => {
-      if (undo?.timerId) clearTimeout(undo.timerId);
-    };
-    // 의도적으로 최초 마운트/언마운트에만 실행
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const progress = useMemo(() => calcProgress(goal), [goal]);
-
-  const addSubtask = () => {
-    const t = text.trim();
+  const addTask = () => {
+    const t = taskText.trim();
     if (!t) return;
 
-    const next = {
-      ...goal,
-      subtasks: [
-        ...goal.subtasks,
-        {
-          id: uid(),
-          text: t,
-          done: false,
-        },
-      ],
+    const nextTask = {
+      id: uid(),
+      title: t,
+      done: false,
+      order: goal.tasks.length,
+      createdAt: Date.now(),
+      subtasks: [],
     };
 
-    onUpdateGoal(next);
-    setText("");
-  };
-
-  const toggleSubtask = (id) => {
-    const next = {
+    onUpdateGoal({
       ...goal,
-      subtasks: goal.subtasks.map((s) =>
-        s.id === id ? { ...s, done: !s.done } : s
-      ),
-    };
-    onUpdateGoal(next);
-  };
-
-  // 삭제 + 3초 Undo (스냅샷 복원 방식: 가장 안정적)
-  const deleteSubtaskWithUndo = (id) => {
-    // 기존 undo가 떠 있으면 확정 처리(타이머 제거)
-    if (undo?.timerId) clearTimeout(undo.timerId);
-
-    const prevSubtasks = goal.subtasks;
-    const idx = prevSubtasks.findIndex((s) => s.id === id);
-    if (idx === -1) return;
-
-    const removed = prevSubtasks[idx];
-
-    // 1) 즉시 삭제
-    const nextSubtasks = prevSubtasks.filter((s) => s.id !== id);
-    onUpdateGoal({ ...goal, subtasks: nextSubtasks });
-
-    // 2) 3초 Undo 토스트
-    const timerId = setTimeout(() => {
-      setUndo(null);
-    }, 3000);
-
-    setUndo({
-      prevSubtasks,
-      timerId,
-      message: `삭제됨: ${removed?.text ?? ""}`,
+      updatedAt: Date.now(),
+      tasks: [...goal.tasks, nextTask],
     });
+
+    setTaskText("");
   };
 
-  const undoDelete = () => {
-    if (!undo) return;
-    if (undo.timerId) clearTimeout(undo.timerId);
+  const toggleTask = (id) => {
+    const nextTasks = goal.tasks.map((task) => {
+      if (task.id !== id) return task;
 
-    // 삭제 전 상태로 통째로 복원
-    onUpdateGoal({ ...goal, subtasks: undo.prevSubtasks });
-    setUndo(null);
-  };
-
-  const dismissUndo = () => {
-    if (undo?.timerId) clearTimeout(undo.timerId);
-    setUndo(null);
-  };
-
-  // 미완료 위 / 완료 아래 + 같은 상태면 원래 순서 유지(안정감)
-  const ordered = useMemo(() => {
-    const indexMap = new Map(goal.subtasks.map((s, i) => [s.id, i]));
-
-    return [...goal.subtasks].sort((a, b) => {
-      const doneDiff = Number(a.done) - Number(b.done);
-      if (doneDiff !== 0) return doneDiff;
-      return (indexMap.get(a.id) ?? 0) - (indexMap.get(b.id) ?? 0);
+      return {
+        ...task,
+        done: !task.done,
+        subtasks: task.subtasks.map((subtask) => ({
+          ...subtask,
+          done: !task.done,
+        })),
+      };
     });
-  }, [goal.subtasks]);
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+  };
+
+  const deleteTask = (id) => {
+    onUpdateGoal({
+      ...goal,
+      updatedAt: Date.now(),
+      tasks: goal.tasks.filter((task) => task.id !== id),
+    });
+
+    setSelectedTaskId((cur) => (cur === id ? null : cur));
+  };
+
+  const startEditTask = (task) => {
+    setEditingTaskId(task.id);
+    setEditingTaskText(task.title);
+    setEditingSubtaskId(null);
+    setEditingSubtaskText("");
+  };
+
+  const cancelEditTask = () => {
+    setEditingTaskId(null);
+    setEditingTaskText("");
+  };
+
+  const saveEditTask = () => {
+    if (!editingTaskId) return;
+
+    const nextTitle = editingTaskText.trim();
+    if (!nextTitle) return;
+
+    const nextTasks = goal.tasks.map((task) =>
+      task.id === editingTaskId
+        ? { ...task, title: nextTitle, updatedAt: Date.now() }
+        : task
+    );
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+    cancelEditTask();
+  };
+
+  const addSubtask = () => {
+    if (!selectedTask) return;
+
+    const t = subtaskText.trim();
+    if (!t) return;
+
+    const nextTasks = goal.tasks.map((task) => {
+      if (task.id !== selectedTask.id) return task;
+
+      return {
+        ...task,
+        done: false,
+        subtasks: [
+          ...task.subtasks,
+          {
+            id: uid(),
+            title: t,
+            done: false,
+            order: task.subtasks.length,
+            createdAt: Date.now(),
+          },
+        ],
+      };
+    });
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+    setSubtaskText("");
+  };
+
+  const toggleSubtask = (taskId, subtaskId) => {
+    const nextTasks = goal.tasks.map((task) => {
+      if (task.id !== taskId) return task;
+
+      const nextSubtasks = task.subtasks.map((subtask) =>
+        subtask.id === subtaskId
+          ? { ...subtask, done: !subtask.done }
+          : subtask
+      );
+
+      const allDone =
+        nextSubtasks.length > 0 && nextSubtasks.every((subtask) => subtask.done);
+
+      return {
+        ...task,
+        done: allDone,
+        subtasks: nextSubtasks,
+      };
+    });
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+  };
+
+  const deleteSubtask = (taskId, subtaskId) => {
+    const nextTasks = goal.tasks.map((task) => {
+      if (task.id !== taskId) return task;
+
+      const nextSubtasks = task.subtasks.filter(
+        (subtask) => subtask.id !== subtaskId
+      );
+
+      return {
+        ...task,
+        done:
+          nextSubtasks.length > 0 &&
+          nextSubtasks.every((subtask) => subtask.done),
+        subtasks: nextSubtasks,
+      };
+    });
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+  };
+
+  const startEditSubtask = (subtask) => {
+    setEditingSubtaskId(subtask.id);
+    setEditingSubtaskText(subtask.title);
+    setEditingTaskId(null);
+    setEditingTaskText("");
+  };
+
+  const cancelEditSubtask = () => {
+    setEditingSubtaskId(null);
+    setEditingSubtaskText("");
+  };
+
+  const saveEditSubtask = (taskId) => {
+    if (!editingSubtaskId) return;
+
+    const nextTitle = editingSubtaskText.trim();
+    if (!nextTitle) return;
+
+    const nextTasks = goal.tasks.map((task) => {
+      if (task.id !== taskId) return task;
+
+      return {
+        ...task,
+        updatedAt: Date.now(),
+        subtasks: task.subtasks.map((subtask) =>
+          subtask.id === editingSubtaskId
+            ? { ...subtask, title: nextTitle, updatedAt: Date.now() }
+            : subtask
+        ),
+      };
+    });
+
+    onUpdateGoal({ ...goal, updatedAt: Date.now(), tasks: nextTasks });
+    cancelEditSubtask();
+  };
+
+  const orderedTasks = useMemo(() => {
+    return [...goal.tasks].sort((a, b) => {
+      const aProgress = calcTaskProgress(a);
+      const bProgress = calcTaskProgress(b);
+
+      if (aProgress === 100 && bProgress !== 100) return 1;
+      if (aProgress !== 100 && bProgress === 100) return -1;
+
+      return (a.order ?? 0) - (b.order ?? 0);
+    });
+  }, [goal.tasks]);
 
   return (
     <div className="subtasks">
@@ -115,52 +228,167 @@ export default function SubtaskList({ goal, onUpdateGoal }) {
         <div className="row">
           <input
             className="input"
-            value={text}
-            placeholder="하위 작업 추가"
-            onChange={(e) => setText(e.target.value)}
+            value={taskText}
+            placeholder="태스크 추가"
+            onChange={(e) => setTaskText(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") addSubtask();
+              if (e.key === "Enter") addTask();
             }}
           />
-          <button className="btn" onClick={addSubtask} disabled={!text.trim()}>
-            Add
+          <button className="btn" onClick={addTask} disabled={!taskText.trim()}>
+            추가
           </button>
         </div>
 
         <div className="miniMeta">
-          <span className="miniLabel">Progress</span>
-          <span className="miniValue">{progress}%</span>
+          <span className="miniLabel">Task</span>
+          <span className="miniValue">{goal.tasks.length}개</span>
         </div>
       </div>
 
-      {ordered.length === 0 ? (
+      {orderedTasks.length === 0 ? (
         <div className="empty compact">
-          <div className="emptyTitle">
-            하위 작업을 1개만 추가해도 시작이 쉬워집니다
-          </div>
+          <div className="emptyTitle">태스크를 1개만 추가해도 시작이 쉬워집니다</div>
           <div className="emptyText">
-            예: “창문 닦기”, “청소기”, “쓰레기 버리기”
+            예: “책상 정리”, “바닥 청소”, “쓰레기 버리기”
           </div>
         </div>
       ) : (
         <div className="taskList">
-          {ordered.map((s) => (
+          {orderedTasks.map((task) => (
             <SubtaskItem
-              key={s.id}
-              subtask={s}
-              onToggle={() => toggleSubtask(s.id)}
-              onDelete={() => deleteSubtaskWithUndo(s.id)}
+              key={task.id}
+              task={task}
+              isSelected={selectedTaskId === task.id}
+              isEditing={editingTaskId === task.id}
+              editText={editingTaskText}
+              onChangeEditText={setEditingTaskText}
+              onStartEdit={() => startEditTask(task)}
+              onSaveEdit={saveEditTask}
+              onCancelEdit={cancelEditTask}
+              onToggle={() => toggleTask(task.id)}
+              onOpen={() =>
+                setSelectedTaskId((currentId) =>
+                  currentId === task.id ? null : task.id
+                )
+              }
+              onDelete={() => deleteTask(task.id)}
             />
           ))}
         </div>
       )}
 
-      {undo && (
-        <UndoToast
-          message={undo.message || "삭제됨"}
-          onUndo={undoDelete}
-          onDismiss={dismissUndo}
-        />
+      {selectedTask && (
+        <section className="panel">
+          <div className="progressTop">
+            <div>
+              <div className="emptyTitle">{selectedTask.title}</div>
+              <div className="emptyText">
+                더 쪼개고 싶을 때만 서브태스크를 추가하세요.
+              </div>
+            </div>
+            <div className="pct">{calcTaskProgress(selectedTask)}%</div>
+          </div>
+
+          <div className="row" style={{ marginTop: 12 }}>
+            <input
+              className="input"
+              value={subtaskText}
+              placeholder="서브태스크 추가"
+              onChange={(e) => setSubtaskText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") addSubtask();
+              }}
+            />
+            <button
+              className="btn"
+              onClick={addSubtask}
+              disabled={!subtaskText.trim()}
+            >
+              추가
+            </button>
+          </div>
+
+          {selectedTask.subtasks.length === 0 ? (
+            <div className="empty compact" style={{ marginTop: 12 }}>
+              <div className="emptyTitle">서브태스크는 선택사항입니다</div>
+              <div className="emptyText">
+                이 태스크가 충분히 작다면 그냥 완료 체크해도 됩니다.
+              </div>
+            </div>
+          ) : (
+            <div className="taskList" style={{ marginTop: 12 }}>
+              {selectedTask.subtasks.map((subtask) => (
+                <div
+                  className={`taskRow ${subtask.done ? "done" : ""}`}
+                  key={subtask.id}
+                >
+                  <button
+                    className={`check ${subtask.done ? "checked" : ""}`}
+                    onClick={() => toggleSubtask(selectedTask.id, subtask.id)}
+                    type="button"
+                  >
+                    {subtask.done ? "✓" : ""}
+                  </button>
+
+                  {editingSubtaskId === subtask.id ? (
+                    <input
+                      className="inlineEditInput"
+                      value={editingSubtaskText}
+                      autoFocus
+                      onChange={(e) => setEditingSubtaskText(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditSubtask(selectedTask.id);
+                        if (e.key === "Escape") cancelEditSubtask();
+                      }}
+                    />
+                  ) : (
+                    <div
+                      className="taskText"
+                      onClick={() => toggleSubtask(selectedTask.id, subtask.id)}
+                    >
+                      {subtask.title}
+                    </div>
+                  )}
+
+                  <button
+                    className={`taskEditBtn ${editingSubtaskId === subtask.id ? "isSave" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (editingSubtaskId === subtask.id) {
+                        saveEditSubtask(selectedTask.id);
+                        return;
+                      }
+                      startEditSubtask(subtask);
+                    }}
+                    aria-label={editingSubtaskId === subtask.id ? "Save subtask" : "Edit subtask"}
+                    title={editingSubtaskId === subtask.id ? "Save" : "Edit"}
+                    type="button"
+                  >
+                    {editingSubtaskId === subtask.id ? "✓" : "✎"}
+                  </button>
+
+                  <button
+                    className="taskDeleteBtn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (editingSubtaskId === subtask.id) {
+                        cancelEditSubtask();
+                        return;
+                      }
+                      deleteSubtask(selectedTask.id, subtask.id);
+                    }}
+                    aria-label={editingSubtaskId === subtask.id ? "Cancel edit" : "Delete subtask"}
+                    title={editingSubtaskId === subtask.id ? "Cancel" : "Delete"}
+                    type="button"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
     </div>
   );
