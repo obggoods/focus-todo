@@ -23,11 +23,14 @@ const HERO_MESSAGES = [
   "작게 쪼개면 바로 시작할 수 있어요.",
   "완벽보다 시작이 먼저예요.",
   "지금 할 일 하나만 골라요.",
-  "멈춰도 괜찮고, 다시 시작하면 돼요.",
+  "멈췄다가 다시 해도 괜찮아요.",
   "작은 완료가 오늘을 바꿔요.",
   "천릿 길도 한 걸음부터!",
   "완벽주의보다는 완료주의!",
+  "지금 할 수 있는 만큼만 해봐요.",
   "시작하기 가장 좋은 타이밍은 바로 지금!",
+  "할 일을 쪼개면 마음도 가벼워져요.",
+  "아무 생각 말고 바로 시작하기!",
 ];
 
 function calcTaskProgress(task) {
@@ -170,10 +173,18 @@ export default function GoalList({
     selectedCategoryId || DEFAULT_CATEGORY_ID
   );
 
-  const heroMessage = useMemo(() => {
+  const [heroMessage, setHeroMessage] = useState(() => {
     const index = Math.floor(Math.random() * HERO_MESSAGES.length);
     return HERO_MESSAGES[index];
-  }, []);
+  });
+
+  const changeHeroMessage = () => {
+    setHeroMessage((current) => {
+      const candidates = HERO_MESSAGES.filter((message) => message !== current);
+      const index = Math.floor(Math.random() * candidates.length);
+      return candidates[index] || current;
+    });
+  };
 
   const cancelEditCategory = () => {
     setEditingCategoryId(null);
@@ -362,14 +373,20 @@ export default function GoalList({
   return (
     <div className="screen adhdScreen">
       <div className="heroAccountRow" data-tour-id="hero-account-row">
-        <section className="welcomeCard compactHeroCard" aria-label="ADHD-TODO 응원 메시지">
+        <button
+          type="button"
+          className="welcomeCard compactHeroCard heroMessageButton"
+          onClick={changeHeroMessage}
+          aria-label="응원 메시지 바꾸기"
+          title="탭해서 응원 메시지 바꾸기"
+        >
           <div className="welcomeCopy">
             <h2>{heroMessage}</h2>
           </div>
           <div className="mascotBubble" aria-hidden="true">
             <img src="/nemo_hero.png" alt="" />
           </div>
-        </section>
+        </button>
 
         {accountPanel}
       </div>

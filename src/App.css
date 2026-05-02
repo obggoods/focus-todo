@@ -1324,9 +1324,15 @@ body {
 .welcomeCopy h2 {
   margin: 0;
   color: var(--text);
-  font-size: 24px;
-  line-height: 1.28;
+  font-size: 1.1rem;
+  line-height: 1.4;
   letter-spacing: -0.8px;
+}
+
+@media (max-width: 640px) {
+  .welcomeCopy h2 {
+    font-size: 0.95rem;
+  }
 }
 
 .welcomeCopy p {
@@ -2478,6 +2484,7 @@ body {
     border-radius: 18px;
   }
 }
+
 /* =========================
    Typography normalization patch
    - Pretendard는 800~900 구간이 화면에서 과하게 두꺼워 보일 수 있어
@@ -2502,8 +2509,7 @@ select {
   font-weight: var(--todo-fw-body);
 }
 
-:is(
-  .btn,
+:is(.btn,
   .softPrimaryBtn,
   .softSelect,
   .categoryTab,
@@ -2522,13 +2528,11 @@ select {
   .softGoalDeleteBtn,
   .undoToast__btn,
   .softGoalMeta,
-  .detailMenuButton
-) {
+  .detailMenuButton) {
   font-weight: var(--todo-fw-ui);
 }
 
-:is(
-  .h1,
+:is(.h1,
   .cardTitle,
   .pct,
   .miniValue,
@@ -2538,28 +2542,23 @@ select {
   .sectionTitle,
   .softCategoryBadge,
   .softGoalTitle,
-  .detailCategoryOption.isSelected
-) {
+  .detailCategoryOption.isSelected) {
   font-weight: var(--todo-fw-title);
 }
 
-:is(
-  .goalTitle,
+:is(.goalTitle,
   .bigPct,
-  .welcomeCopy h2
-) {
+  .welcomeCopy h2) {
   font-weight: var(--todo-fw-display);
 }
 
-:is(
-  .manageIconBtn,
+:is(.manageIconBtn,
   .iconBtn,
   .categoryChipDeleteBtn,
   .taskEditBtn,
   .taskDeleteBtn,
   .softGoalDeleteBtn,
-  .undoToast__close
-)::before {
+  .undoToast__close)::before {
   font-weight: var(--todo-fw-title);
 }
 
@@ -2941,12 +2940,18 @@ select {
 
 .compactHeroCard .welcomeCopy h2 {
   margin: 0;
-  font-size: clamp(19px, 2.6vw, 26px);
-  line-height: 1.18;
-  letter-spacing: -0.9px;
+  max-width: none;
+
+  font-size: clamp(15px, 1.6vw, 18px);
+  line-height: 1.35;
+  letter-spacing: -0.35px;
+
   white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+
+  display: block;
   overflow: visible;
-  text-overflow: clip;
 }
 
 .compactHeroCard .mascotBubble {
@@ -3028,7 +3033,9 @@ select {
   }
 
   .compactHeroCard .welcomeCopy h2 {
-    font-size: 20px;
+    max-width: none;
+    font-size: 16px;
+    line-height: 1.35;
   }
 
   .compactHeroCard .mascotBubble {
@@ -3231,4 +3238,27 @@ select {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
+}
+
+.heroMessageButton {
+  width: 100%;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.heroMessageButton:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 640px) {
+  .heroAccountRow .accountBar {
+    display: none;
+  }
+
+  .heroAccountRow .accountBar.isEditing {
+    display: flex;
+  }
 }
