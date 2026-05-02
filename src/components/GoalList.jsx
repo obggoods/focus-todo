@@ -122,6 +122,7 @@ export default function GoalList({
   setCategories,
   onOpenGoal,
   accountPanel,
+  onMobileSignOut,
 }) {
   const [title, setTitle] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] =
@@ -173,6 +174,8 @@ export default function GoalList({
     selectedCategoryId || DEFAULT_CATEGORY_ID
   );
 
+  const [showMobileLogout, setShowMobileLogout] = useState(false);
+  const heroRef = useRef(null);
   const [heroMessage, setHeroMessage] = useState(() => {
     const index = Math.floor(Math.random() * HERO_MESSAGES.length);
     return HERO_MESSAGES[index];
@@ -214,6 +217,18 @@ export default function GoalList({
   }, [isCategoryManageOpen]);
 
   useEffect(() => {
+    if (!showMobileLogout) return;
+
+    const timer = window.setTimeout(() => {
+      setShowMobileLogout(false);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [showMobileLogout]);
+
+  useEffect(() => {
     if (!isGoalCategoryMenuOpen) return;
 
     const handlePointerDown = (event) => {
@@ -226,6 +241,24 @@ export default function GoalList({
       document.removeEventListener("pointerdown", handlePointerDown);
     };
   }, [isGoalCategoryMenuOpen]);
+
+  useEffect(() => {
+    if (!showMobileLogout) return;
+
+    const handleClickOutside = (event) => {
+      if (!heroRef.current) return;
+
+      if (!heroRef.current.contains(event.target)) {
+        setShowMobileLogout(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside);
+    };
+  }, [showMobileLogout]);
 
   const addCategory = () => {
     const name = newCategoryName.trim();
@@ -374,17 +407,71 @@ export default function GoalList({
     <div className="screen adhdScreen">
       <div className="heroAccountRow" data-tour-id="hero-account-row">
         <button
+          ref={heroRef}
           type="button"
           className="welcomeCard compactHeroCard heroMessageButton"
-          onClick={changeHeroMessage}
+          onClick={() => {
+            if (showMobileLogout) {
+              setShowMobileLogout(false);
+              return;
+            }
+
+            changeHeroMessage();
+          }}
           aria-label="응원 메시지 바꾸기"
           title="탭해서 응원 메시지 바꾸기"
         >
           <div className="welcomeCopy">
             <h2>{heroMessage}</h2>
           </div>
-          <div className="mascotBubble" aria-hidden="true">
-            <img src="/nemo_hero.png" alt="" />
+          <div className="heroMascotWrap">
+            <button
+              type="button"
+              className={`mascotBubble mascotBubbleButton ${showMobileLogout ? "isLogoutMode" : ""}`}
+              onClick={(event) => {
+                event.stopPropagation();
+
+                if (showMobileLogout) {
+                  onMobileSignOut?.();
+                  return;
+                }
+
+                setShowMobileLogout(true);
+              }}
+              aria-label={showMobileLogout ? "로그아웃" : "모바일 로그아웃 메뉴 열기"}
+              title={showMobileLogout ? "로그아웃" : "로그아웃 메뉴"}
+            >
+              {showMobileLogout ? (
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path
+                    d="M10 7V5.5A1.5 1.5 0 0 1 11.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6.5A1.5 1.5 0 0 1 10 18.5V17"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 12H4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M11 9l3 3-3 3"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <img src="/nemo_hero.png" alt="" />
+              )}
+            </button>
           </div>
         </button>
 

@@ -443,6 +443,7 @@ export default function App() {
           setCategories={applyCategoriesUpdate}
           onOpenGoal={openGoal}
           accountPanel={accountPanel}
+          onMobileSignOut={handleSignOut}
         />
       ) : (
         <GoalDetail
