@@ -329,7 +329,58 @@ export default function App() {
       className={`accountBar ${isEditingNickname ? "isEditing" : ""}`}
       aria-label="계정 정보"
     >
-      <div className="accountAppTitle">아데하데 투두</div>
+
+      <div className="accountHeaderRow">
+        <div className="accountAppTitle">ADHD Todo</div>
+
+        {!isEditingNickname && (
+          <div className="accountActions">
+            <button
+              className="accountEditBtn accountIconBtn"
+              type="button"
+              onClick={startEditNickname}
+              aria-label="닉네임 수정"
+              title="닉네임 수정"
+            >
+              ✎
+            </button>
+            <button
+              className="accountLogoutBtn accountIconBtn"
+              type="button"
+              onClick={handleSignOut}
+              aria-label="로그아웃"
+              title="로그아웃"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path
+                  d="M10 7V5.5A1.5 1.5 0 0 1 11.5 4H18a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6.5A1.5 1.5 0 0 1 10 18.5V17"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M14 12H4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M11 9l3 3-3 3"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
+        )}
+      </div>
 
       {isEditingNickname ? (
         <form className="accountNicknameForm" onSubmit={saveNickname}>
@@ -373,27 +424,7 @@ export default function App() {
           )}
         </form>
       ) : (
-        <div className="accountContentRow">
-          <span className="accountGreeting">{greetingText}</span>
-          <div className="accountActions">
-            <button
-              className="accountEditBtn"
-              type="button"
-              onClick={startEditNickname}
-              aria-label="닉네임 수정"
-              title="닉네임 수정"
-            >
-              ✎
-            </button>
-            <button
-              className="accountLogoutBtn"
-              type="button"
-              onClick={handleSignOut}
-            >
-              로그아웃
-            </button>
-          </div>
-        </div>
+        <p className="accountGreeting">{greetingText}</p>
       )}
     </section>
   );

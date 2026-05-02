@@ -1324,15 +1324,9 @@ body {
 .welcomeCopy h2 {
   margin: 0;
   color: var(--text);
-  font-size: 1.1rem;
-  line-height: 1.4;
+  font-size: 24px;
+  line-height: 1.28;
   letter-spacing: -0.8px;
-}
-
-@media (max-width: 640px) {
-  .welcomeCopy h2 {
-    font-size: 0.95rem;
-  }
 }
 
 .welcomeCopy p {
@@ -2732,7 +2726,7 @@ select {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 6px;
   padding: 10px 12px;
 }
 
@@ -2905,8 +2899,7 @@ select {
 }
 
 /* =========================
-   Hero + account split row patch
-   - 네모 응원 카드와 계정 카드를 같은 줄에 배치한다.
+   Hero + Account cards
    ========================= */
 .heroAccountRow {
   display: grid;
@@ -2918,17 +2911,18 @@ select {
 
 .heroAccountRow .welcomeCard,
 .heroAccountRow .accountBar {
-  min-height: 108px;
+  min-height: 84px;
   height: 100%;
   margin: 0;
 }
 
+/* Hero message card */
 .compactHeroCard {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  padding: 18px 18px 18px 20px;
+  gap: 10px;
+  padding: 12px 14px;
   overflow: hidden;
 }
 
@@ -2941,67 +2935,109 @@ select {
 .compactHeroCard .welcomeCopy h2 {
   margin: 0;
   max-width: none;
-
-  font-size: clamp(15px, 1.6vw, 18px);
-  line-height: 1.35;
+  font-size: clamp(16px, 1.8vw, 20px);
+  line-height: 1.32;
   letter-spacing: -0.35px;
-
   white-space: normal;
   word-break: keep-all;
-  overflow-wrap: normal;
-
-  display: block;
-  overflow: visible;
+  overflow-wrap: break-word;
 }
 
 .compactHeroCard .mascotBubble {
-  width: 76px;
-  height: 76px;
-  border-radius: 22px;
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
   flex: 0 0 auto;
 }
 
+/* Hero message click feedback */
+.heroMessageButton {
+  cursor: pointer;
+  transform: translateY(0) scale(1);
+  transition:
+    transform 120ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.heroMessageButton:hover {
+  filter: brightness(1.01);
+}
+
+.heroMessageButton:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+/* Account card */
 .accountBar {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   justify-content: center;
-  gap: 14px;
-  padding: 18px 18px 16px;
+  gap: 4px;
+  padding: 12px 14px;
   background: rgba(255, 253, 244, 0.88);
   border: 1px solid rgba(139, 203, 106, 0.24);
   border-radius: 24px;
 }
 
-.accountBar.isEditing {
-  justify-content: center;
-}
-
-.accountAppTitle {
-  color: #4f6748;
-  font-size: 14px;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.2px;
-}
-
-.accountContentRow {
+.accountHeaderRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
 }
 
+.accountAppTitle {
+  min-width: 0;
+  flex: 1 1 auto;
+  color: #4f6748;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.3px;
+}
+
+.accountActions,
+.accountEditActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
 .accountGreeting {
+  margin: 0;
   min-width: 0;
   overflow: hidden;
   color: #3f4f39;
   font-size: 15px;
   font-weight: 750;
-  line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.28;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.accountEditBtn.accountIconBtn,
+.accountLogoutBtn.accountIconBtn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.accountIconBtn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.accountBar.isEditing {
+  justify-content: center;
 }
 
 .accountNicknameForm {
@@ -3011,56 +3047,44 @@ select {
   gap: 8px;
 }
 
-.accountEditActions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.accountSaveBtn,
+.accountCancelBtn {
+  padding: 8px 12px;
 }
 
+/* Mobile */
 @media (max-width: 640px) {
   .heroAccountRow {
     grid-template-columns: 1fr;
     gap: 10px;
   }
 
-  .heroAccountRow .welcomeCard,
+  .heroAccountRow .welcomeCard {
+    min-height: 82px;
+  }
+
   .heroAccountRow .accountBar {
-    min-height: 96px;
+    display: none;
+  }
+
+  .heroAccountRow .accountBar.isEditing {
+    display: flex;
+    min-height: 82px;
   }
 
   .compactHeroCard {
-    padding: 16px 16px 16px 18px;
+    padding: 12px 14px;
   }
 
   .compactHeroCard .welcomeCopy h2 {
-    max-width: none;
     font-size: 16px;
-    line-height: 1.35;
+    line-height: 1.32;
   }
 
   .compactHeroCard .mascotBubble {
-    width: 68px;
-    height: 68px;
-    border-radius: 20px;
-  }
-
-  .accountBar {
-    padding: 16px;
-  }
-}
-
-@media (max-width: 420px) {
-  .accountContentRow {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .accountActions {
-    width: 100%;
-  }
-
-  .accountLogoutBtn {
-    flex: 1 1 auto;
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
   }
 
   .accountNicknameForm {
@@ -3238,27 +3262,4 @@ select {
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
-}
-
-.heroMessageButton {
-  width: 100%;
-  border: 0;
-  cursor: pointer;
-  text-align: left;
-  font: inherit;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.heroMessageButton:active {
-  transform: translateY(1px);
-}
-
-@media (max-width: 640px) {
-  .heroAccountRow .accountBar {
-    display: none;
-  }
-
-  .heroAccountRow .accountBar.isEditing {
-    display: flex;
-  }
 }
