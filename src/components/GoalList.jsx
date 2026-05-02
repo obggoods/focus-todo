@@ -25,7 +25,7 @@ const HERO_MESSAGES = [
   "지금 할 일 하나만 골라요.",
   "멈춰도 괜찮고, 다시 시작하면 돼요.",
   "작은 완료가 오늘을 바꿔요.",
-  "천릿 길도 한 걸음부터!",
+  "천리 길도 한 걸음부터!",
   "완벽주의보다는 완료주의!",
   "시작하기 가장 좋은 타이밍은 바로 지금!",
 ];
@@ -118,6 +118,7 @@ export default function GoalList({
   categories,
   setCategories,
   onOpenGoal,
+  accountPanel,
 }) {
   const [title, setTitle] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] =
@@ -360,17 +361,20 @@ export default function GoalList({
 
   return (
     <div className="screen adhdScreen">
-      <section className="welcomeCard speechHero" aria-label="ADHD-TODO 응원 메시지">
-        <div className="welcomeCopy speechHeroCopy">
-          <div className="welcomeAppName">ADHD-TODO</div>
-          <h2>{heroMessage}</h2>
-        </div>
-        <div className="mascotBubble speechHeroMascot" aria-hidden="true">
-          <img src="/nemo_hero.png" alt="" />
-        </div>
-      </section>
+      <div className="heroAccountRow" data-tour-id="hero-account-row">
+        <section className="welcomeCard compactHeroCard" aria-label="ADHD-TODO 응원 메시지">
+          <div className="welcomeCopy">
+            <h2>{heroMessage}</h2>
+          </div>
+          <div className="mascotBubble" aria-hidden="true">
+            <img src="/nemo_hero.png" alt="" />
+          </div>
+        </section>
 
-      <section className="panel categoryPanel" ref={categoryManagePanelRef}>
+        {accountPanel}
+      </div>
+
+      <section className="panel categoryPanel" ref={categoryManagePanelRef} data-tour-id="category-tabs">
 
         <div className="categoryHeaderRow">
           <div className="categoryTabs">
@@ -584,7 +588,7 @@ export default function GoalList({
         )}
       </section>
 
-      <section className="panel goalAddPanel">
+      <section className="panel goalAddPanel" data-tour-id="goal-add">
         <div className="row goalAddRow">
           <input
             className="input softInput"
@@ -650,7 +654,7 @@ export default function GoalList({
         </div>
       </section>
 
-      <section className="list goalCardList">
+      <section className="list goalCardList" data-tour-id="goal-cards">
         {visibleGoals.length === 0 ? (
           <div className="empty softEmpty">
             <div className="emptyTitle">표시할 목표가 없습니다</div>
