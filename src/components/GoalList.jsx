@@ -25,7 +25,7 @@ const HERO_MESSAGES = [
   "지금 할 일 하나만 골라요.",
   "멈춰도 괜찮고, 다시 시작하면 돼요.",
   "작은 완료가 오늘을 바꿔요.",
-  "천리 길도 한 걸음부터!",
+  "천릿 길도 한 걸음부터!",
   "완벽주의보다는 완료주의!",
   "시작하기 가장 좋은 타이밍은 바로 지금!",
 ];
@@ -384,6 +384,7 @@ export default function GoalList({
               onClick={() => {
                 if (isCategoryManageOpen) return;
                 setFilterCategoryId("all");
+                setSelectedCategoryId(DEFAULT_CATEGORY_ID);
               }}
               disabled={isCategoryManageOpen}
             >
@@ -413,6 +414,7 @@ export default function GoalList({
                       }
 
                       setFilterCategoryId(cat.id);
+                      setSelectedCategoryId(cat.id);
                     }}
                     disabled={isLockedInManage}
                     style={{ "--category-color": getCategoryColor(cat) }}
