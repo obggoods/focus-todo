@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Layout from "./components/Layout";
 import GoalList from "./components/GoalList";
 import GoalDetail from "./components/GoalDetail";
 import AuthPage from "./components/AuthPage";
 import OnboardingTour from "./components/OnboardingTour";
-import { useLocalStorage } from "./hooks/useLocalStorage";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import {
-  CATEGORY_STORAGE_KEY,
-  STORAGE_KEY,
-  normalizeCategories,
-  normalizeGoals,
-} from "./utils/storage";
+  fetchTodoData,
+  syncCategoryListChanges,
+  syncGoalListChanges,
+} from "./lib/todoDb";
 import "./App.css";
 
 function getSessionNickname(session) {
@@ -23,15 +21,17 @@ function getSessionNickname(session) {
 }
 
 export default function App() {
-  const [goals, setGoals] = useLocalStorage(STORAGE_KEY, [], normalizeGoals);
-  const [categories, setCategories] = useLocalStorage(
-    CATEGORY_STORAGE_KEY,
-    [],
-    normalizeCategories
-  );
+  const [goals, setGoals] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const goalsRef = useRef([]);
+  const categoriesRef = useRef([]);
+  const saveQueueRef = useRef(Promise.resolve());
+
   const [activeGoalId, setActiveGoalId] = useState(null);
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [todoLoading, setTodoLoading] = useState(false);
+  const [todoError, setTodoError] = useState("");
   const [profileNickname, setProfileNickname] = useState("");
   const [nicknameDraft, setNicknameDraft] = useState("");
   const [isEditingNickname, setIsEditingNickname] = useState(false);
@@ -39,6 +39,54 @@ export default function App() {
   const [nicknameError, setNicknameError] = useState("");
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [onboardingSaving, setOnboardingSaving] = useState(false);
+
+  const replaceGoals = (nextGoals) => {
+    goalsRef.current = nextGoals;
+    setGoals(nextGoals);
+  };
+
+  const replaceCategories = (nextCategories) => {
+    categoriesRef.current = nextCategories;
+    setCategories(nextCategories);
+  };
+
+  const enqueueDbSave = (saveTask) => {
+    saveQueueRef.current = saveQueueRef.current
+      .then(saveTask)
+      .catch(() => {
+        setTodoError("저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.");
+      });
+  };
+
+  const applyGoalsUpdate = (updater) => {
+    const previousGoals = goalsRef.current;
+    const nextGoals =
+      typeof updater === "function" ? updater(previousGoals) : updater;
+
+    replaceGoals(nextGoals);
+    setTodoError("");
+
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    enqueueDbSave(() => syncGoalListChanges(userId, previousGoals, nextGoals));
+  };
+
+  const applyCategoriesUpdate = (updater) => {
+    const previousCategories = categoriesRef.current;
+    const nextCategories =
+      typeof updater === "function" ? updater(previousCategories) : updater;
+
+    replaceCategories(nextCategories);
+    setTodoError("");
+
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    enqueueDbSave(() =>
+      syncCategoryListChanges(userId, previousCategories, nextCategories)
+    );
+  };
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -73,41 +121,65 @@ export default function App() {
 
   useEffect(() => {
     if (!session?.user?.id || !supabase) {
+      replaceGoals([]);
+      replaceCategories([]);
       setProfileNickname("");
       setNicknameDraft("");
       setIsEditingNickname(false);
       setNicknameError("");
       setShowOnboarding(false);
       setOnboardingSaving(false);
+      setTodoLoading(false);
+      setTodoError("");
       return;
     }
 
     let ignore = false;
     const fallbackNickname = getSessionNickname(session);
 
-    const loadProfile = async () => {
-      const { data, error } = await supabase
+    const loadUserData = async () => {
+      setTodoLoading(true);
+      setTodoError("");
+
+      const profilePromise = supabase
         .from("profiles")
         .select("nickname, onboarding_seen_at")
         .eq("id", session.user.id)
         .maybeSingle();
 
+      const todoPromise = fetchTodoData(session.user.id);
+      const [profileResult, todoResult] = await Promise.allSettled([
+        profilePromise,
+        todoPromise,
+      ]);
+
       if (ignore) return;
 
-      if (error) {
+      if (profileResult.status === "fulfilled" && !profileResult.value.error) {
+        const data = profileResult.value.data;
+        const nextNickname = data?.nickname?.trim() || fallbackNickname;
+        setProfileNickname(nextNickname);
+        setNicknameDraft(nextNickname);
+        setShowOnboarding(!data?.onboarding_seen_at);
+      } else {
         setProfileNickname(fallbackNickname);
         setNicknameDraft(fallbackNickname);
         setShowOnboarding(false);
-        return;
       }
 
-      const nextNickname = data?.nickname?.trim() || fallbackNickname;
-      setProfileNickname(nextNickname);
-      setNicknameDraft(nextNickname);
-      setShowOnboarding(!data?.onboarding_seen_at);
+      if (todoResult.status === "fulfilled") {
+        replaceCategories(todoResult.value.categories);
+        replaceGoals(todoResult.value.goals);
+      } else {
+        replaceCategories([]);
+        replaceGoals([]);
+        setTodoError("목표 데이터를 불러오지 못했습니다. Supabase 테이블/RLS를 확인해 주세요.");
+      }
+
+      setTodoLoading(false);
     };
 
-    loadProfile();
+    loadUserData();
 
     return () => {
       ignore = true;
@@ -123,11 +195,13 @@ export default function App() {
   const backToList = () => setActiveGoalId(null);
 
   const updateGoal = (nextGoal) => {
-    setGoals((prev) => prev.map((g) => (g.id === nextGoal.id ? nextGoal : g)));
+    applyGoalsUpdate((prev) =>
+      prev.map((goal) => (goal.id === nextGoal.id ? nextGoal : goal))
+    );
   };
 
   const deleteGoal = (id) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id));
+    applyGoalsUpdate((prev) => prev.filter((goal) => goal.id !== id));
     setActiveGoalId((cur) => (cur === id ? null : cur));
   };
 
@@ -135,6 +209,8 @@ export default function App() {
     if (!supabase) return;
     await supabase.auth.signOut();
     setActiveGoalId(null);
+    replaceGoals([]);
+    replaceCategories([]);
   };
 
   const completeOnboarding = async () => {
@@ -324,12 +400,16 @@ export default function App() {
 
   return (
     <Layout>
-      {!activeGoal ? (
+      {todoError && <div className="authErrorBanner">{todoError}</div>}
+
+      {todoLoading ? (
+        <div className="authLoadingCard">내 목표를 불러오는 중입니다.</div>
+      ) : !activeGoal ? (
         <GoalList
           goals={goals}
-          setGoals={setGoals}
+          setGoals={applyGoalsUpdate}
           categories={categories}
-          setCategories={setCategories}
+          setCategories={applyCategoriesUpdate}
           onOpenGoal={openGoal}
           accountPanel={accountPanel}
         />
@@ -343,7 +423,7 @@ export default function App() {
         />
       )}
 
-      {!activeGoal && showOnboarding && (
+      {!activeGoal && !todoLoading && showOnboarding && (
         <OnboardingTour onFinish={completeOnboarding} />
       )}
     </Layout>
