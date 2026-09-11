@@ -30,6 +30,8 @@ export default function App() {
   const [activeGoalId, setActiveGoalId] = useState(null);
   const [session, setSession] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState("");
+  const [authRetryKey, setAuthRetryKey] = useState(0);
   const [todoLoading, setTodoLoading] = useState(false);
   const [todoError, setTodoError] = useState("");
   const [profileNickname, setProfileNickname] = useState("");
@@ -95,29 +97,43 @@ export default function App() {
     }
 
     let mounted = true;
+    let authSubscription;
 
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (!mounted) return;
+    const initializeAuth = async () => {
+      setAuthLoading(true);
+      setAuthError("");
 
-      if (!error) {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (error) throw error;
+
         setSession(data.session || null);
-      }
 
-      setAuthLoading(false);
-    });
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      (_event, nextSession) => {
-        setSession(nextSession || null);
-        setActiveGoalId(null);
+        const { data: authListener } = supabase.auth.onAuthStateChange(
+          (_event, nextSession) => {
+            if (!mounted) return;
+            setSession(nextSession || null);
+            setActiveGoalId(null);
+          }
+        );
+        authSubscription = authListener.subscription;
+      } catch {
+        if (!mounted) return;
+        setSession(null);
+        setAuthError("로그인 상태를 확인하지 못했습니다. 다시 시도해 주세요.");
+      } finally {
+        if (mounted) setAuthLoading(false);
       }
-    );
+    };
+
+    initializeAuth();
 
     return () => {
       mounted = false;
-      authListener.subscription.unsubscribe();
+      authSubscription?.unsubscribe();
     };
-  }, []);
+  }, [authRetryKey]);
 
   useEffect(() => {
     if (!session?.user?.id || !supabase) {
@@ -312,6 +328,23 @@ export default function App() {
     return (
       <Layout>
         <div className="authLoadingCard">로그인 상태를 확인하는 중입니다.</div>
+      </Layout>
+    );
+  }
+
+  if (authError) {
+    return (
+      <Layout>
+        <div className="authLoadingCard" role="alert">
+          <p>{authError}</p>
+          <button
+            className="btn softPrimaryBtn"
+            type="button"
+            onClick={() => setAuthRetryKey((key) => key + 1)}
+          >
+            다시 시도
+          </button>
+        </div>
       </Layout>
     );
   }
