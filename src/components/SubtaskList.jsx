@@ -256,139 +256,140 @@ export default function SubtaskList({ goal, onUpdateGoal }) {
       ) : (
         <div className="taskList">
           {orderedTasks.map((task) => (
-            <SubtaskItem
-              key={task.id}
-              task={task}
-              isSelected={selectedTaskId === task.id}
-              isEditing={editingTaskId === task.id}
-              editText={editingTaskText}
-              onChangeEditText={setEditingTaskText}
-              onStartEdit={() => startEditTask(task)}
-              onSaveEdit={saveEditTask}
-              onCancelEdit={cancelEditTask}
-              onToggle={() => toggleTask(task.id)}
-              onOpen={() =>
-                setSelectedTaskId((currentId) =>
-                  currentId === task.id ? null : task.id
-                )
-              }
-              onDelete={() => deleteTask(task.id)}
-            />
-          ))}
-        </div>
-      )}
+            <div className="taskGroup" key={task.id}>
+              <SubtaskItem
+                task={task}
+                isSelected={selectedTaskId === task.id}
+                isEditing={editingTaskId === task.id}
+                editText={editingTaskText}
+                onChangeEditText={setEditingTaskText}
+                onStartEdit={() => startEditTask(task)}
+                onSaveEdit={saveEditTask}
+                onCancelEdit={cancelEditTask}
+                onToggle={() => toggleTask(task.id)}
+                onOpen={() =>
+                  setSelectedTaskId((currentId) =>
+                    currentId === task.id ? null : task.id
+                  )
+                }
+                onDelete={() => deleteTask(task.id)}
+              />
 
-      {selectedTask && (
-        <section className="panel">
-          <div className="progressTop">
-            <div>
-              <div className="emptyTitle">{selectedTask.title}</div>
-              <div className="emptyText">
-                더 쪼개고 싶을 때만 서브태스크를 추가하세요.
-              </div>
-            </div>
-            <div className="pct">{calcTaskProgress(selectedTask)}%</div>
-          </div>
+              {selectedTaskId === task.id && (
+                <section className="panel">
+                  <div className="progressTop">
+                    <div>
+                      <div className="emptyTitle">{task.title}</div>
+                      <div className="emptyText">
+                        더 쪼개고 싶을 때만 서브태스크를 추가하세요.
+                      </div>
+                    </div>
+                    <div className="pct">{calcTaskProgress(task)}%</div>
+                  </div>
 
-          <div className="row" style={{ marginTop: 12 }}>
-            <input
-              className="input"
-              value={subtaskText}
-              placeholder="서브태스크 추가"
-              onChange={(e) => setSubtaskText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") addSubtask();
-              }}
-            />
-            <button
-              className="btn"
-              onClick={addSubtask}
-              disabled={!subtaskText.trim()}
-            >
-              추가
-            </button>
-          </div>
-
-          {selectedTask.subtasks.length === 0 ? (
-            <div className="empty compact" style={{ marginTop: 12 }}>
-              <div className="emptyTitle">서브태스크는 선택사항입니다</div>
-              <div className="emptyText">
-                이 태스크가 충분히 작다면 그냥 완료 체크해도 됩니다.
-              </div>
-            </div>
-          ) : (
-            <div className="taskList" style={{ marginTop: 12 }}>
-              {selectedTask.subtasks.map((subtask) => (
-                <div
-                  className={`taskRow ${subtask.done ? "done" : ""}`}
-                  key={subtask.id}
-                >
-                  <button
-                    className={`check ${subtask.done ? "checked" : ""}`}
-                    onClick={() => toggleSubtask(selectedTask.id, subtask.id)}
-                    type="button"
-                  >
-                    {subtask.done ? "✓" : ""}
-                  </button>
-
-                  {editingSubtaskId === subtask.id ? (
+                  <div className="row" style={{ marginTop: 12 }}>
                     <input
-                      className="inlineEditInput"
-                      value={editingSubtaskText}
-                      autoFocus
-                      onChange={(e) => setEditingSubtaskText(e.target.value)}
+                      className="input"
+                      value={subtaskText}
+                      placeholder="서브태스크 추가"
+                      onChange={(e) => setSubtaskText(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") saveEditSubtask(selectedTask.id);
-                        if (e.key === "Escape") cancelEditSubtask();
+                        if (e.key === "Enter") addSubtask();
                       }}
                     />
-                  ) : (
-                    <div
-                      className="taskText"
-                      onClick={() => toggleSubtask(selectedTask.id, subtask.id)}
+                    <button
+                      className="btn"
+                      onClick={addSubtask}
+                      disabled={!subtaskText.trim()}
                     >
-                      {subtask.title}
+                      추가
+                    </button>
+                  </div>
+
+                  {task.subtasks.length === 0 ? (
+                    <div className="empty compact" style={{ marginTop: 12 }}>
+                      <div className="emptyTitle">서브태스크는 선택사항입니다</div>
+                      <div className="emptyText">
+                        이 태스크가 충분히 작다면 그냥 완료 체크해도 됩니다.
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="taskList" style={{ marginTop: 12 }}>
+                      {task.subtasks.map((subtask) => (
+                        <div
+                          className={`taskRow ${subtask.done ? "done" : ""}`}
+                          key={subtask.id}
+                        >
+                          <button
+                            className={`check ${subtask.done ? "checked" : ""}`}
+                            onClick={() => toggleSubtask(task.id, subtask.id)}
+                            type="button"
+                          >
+                            {subtask.done ? "✓" : ""}
+                          </button>
+
+                          {editingSubtaskId === subtask.id ? (
+                            <input
+                              className="inlineEditInput"
+                              value={editingSubtaskText}
+                              autoFocus
+                              onChange={(e) => setEditingSubtaskText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEditSubtask(task.id);
+                                if (e.key === "Escape") cancelEditSubtask();
+                              }}
+                            />
+                          ) : (
+                            <div
+                              className="taskText"
+                              onClick={() => toggleSubtask(task.id, subtask.id)}
+                            >
+                              {subtask.title}
+                            </div>
+                          )}
+
+                          <button
+                            className={`taskEditBtn ${editingSubtaskId === subtask.id ? "isSave" : ""}`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (editingSubtaskId === subtask.id) {
+                                saveEditSubtask(task.id);
+                                return;
+                              }
+                              startEditSubtask(subtask);
+                            }}
+                            aria-label={editingSubtaskId === subtask.id ? "Save subtask" : "Edit subtask"}
+                            title={editingSubtaskId === subtask.id ? "Save" : "Edit"}
+                            type="button"
+                          >
+                            {editingSubtaskId === subtask.id ? "✓" : "✎"}
+                          </button>
+
+                          <button
+                            className="taskDeleteBtn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (editingSubtaskId === subtask.id) {
+                                cancelEditSubtask();
+                                return;
+                              }
+                              deleteSubtask(task.id, subtask.id);
+                            }}
+                            aria-label={editingSubtaskId === subtask.id ? "Cancel edit" : "Delete subtask"}
+                            title={editingSubtaskId === subtask.id ? "Cancel" : "Delete"}
+                            type="button"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
-
-                  <button
-                    className={`taskEditBtn ${editingSubtaskId === subtask.id ? "isSave" : ""}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (editingSubtaskId === subtask.id) {
-                        saveEditSubtask(selectedTask.id);
-                        return;
-                      }
-                      startEditSubtask(subtask);
-                    }}
-                    aria-label={editingSubtaskId === subtask.id ? "Save subtask" : "Edit subtask"}
-                    title={editingSubtaskId === subtask.id ? "Save" : "Edit"}
-                    type="button"
-                  >
-                    {editingSubtaskId === subtask.id ? "✓" : "✎"}
-                  </button>
-
-                  <button
-                    className="taskDeleteBtn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (editingSubtaskId === subtask.id) {
-                        cancelEditSubtask();
-                        return;
-                      }
-                      deleteSubtask(selectedTask.id, subtask.id);
-                    }}
-                    aria-label={editingSubtaskId === subtask.id ? "Cancel edit" : "Delete subtask"}
-                    title={editingSubtaskId === subtask.id ? "Cancel" : "Delete"}
-                    type="button"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
+                </section>
+              )}
             </div>
-          )}
-        </section>
+          ))}
+        </div>
       )}
     </div>
   );

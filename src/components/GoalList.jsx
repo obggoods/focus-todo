@@ -142,23 +142,18 @@ export default function GoalList({
     return [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [categories]);
 
-  const visibleGoals = useMemo(() => {
+  const { activeGoals, completedGoals } = useMemo(() => {
     const filtered =
       filterCategoryId === "all"
         ? goals
         : goals.filter((goal) => goal.categoryId === filterCategoryId);
 
-    return [...filtered].sort((a, b) => {
-      const aPct = calcProgress(a);
-      const bPct = calcProgress(b);
+    const sorted = [...filtered].sort((a, b) => b.createdAt - a.createdAt);
 
-      const aDone = aPct === 100;
-      const bDone = bPct === 100;
-
-      if (aDone !== bDone) return aDone ? 1 : -1;
-      if (!aDone && !bDone) return bPct - aPct;
-      return 0;
-    });
+    return {
+      activeGoals: sorted.filter((goal) => calcProgress(goal) < 100),
+      completedGoals: sorted.filter((goal) => calcProgress(goal) === 100),
+    };
   }, [goals, filterCategoryId]);
 
   const editingCategory = orderedCategories.find(
@@ -402,6 +397,81 @@ export default function GoalList({
     if (!ok) return;
     setGoals((prev) => prev.filter((g) => g.id !== id));
   };
+
+  const renderGoalCards = (goalItems) =>
+    goalItems.map((g) => {
+      const pct = calcProgress(g);
+      const isCompleted = pct === 100;
+      const total = g.tasks.length;
+      const done = g.tasks.filter((task) => calcTaskProgress(task) === 100).length;
+      const category = getCategory(categories, g.categoryId);
+      const categoryColor = getCategoryColor(category);
+      const categoryEmoji = getCategoryEmoji(category);
+      const nextAction = getNextAction(g);
+
+      return (
+        <div
+          key={g.id}
+          className={`card softGoalCard ${isCompleted ? "completed" : ""}`}
+          style={{ "--category-color": categoryColor }}
+        >
+          <div
+            className="cardMain softGoalCardMain"
+            onClick={() => onOpenGoal(g.id)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") onOpenGoal(g.id);
+            }}
+          >
+            {category && (
+              <div className="categoryBadge softCategoryBadge">
+                {category.name}
+              </div>
+            )}
+
+            <div className="softGoalBody">
+              <div className="goalEmojiBadge" aria-hidden="true">
+                {categoryEmoji}
+              </div>
+
+              <div className="softGoalTextBlock">
+                <div className="cardTitle softGoalTitle">{g.title}</div>
+
+                <div className="cardMeta softGoalMeta">
+                  <span className="pct">{pct}%</span>
+                  <span className="dot">•</span>
+                  <span className="metaText">
+                    {done}/{total} tasks
+                  </span>
+                </div>
+
+                <div className="nextActionText">
+                  다음: {nextAction}
+                </div>
+              </div>
+            </div>
+
+            <div className="barWrap softBarWrap" aria-hidden="true">
+              <div className="bar softBar" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+
+          <button
+            className="iconBtn danger softGoalDeleteBtn"
+            type="button"
+            aria-label="목표 삭제"
+            title="삭제"
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteGoal(g.id);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      );
+    });
 
   return (
     <div className="screen adhdScreen">
@@ -761,7 +831,7 @@ export default function GoalList({
       </section>
 
       <section className="list goalCardList" data-tour-id="goal-cards">
-        {visibleGoals.length === 0 ? (
+        {activeGoals.length === 0 ? (
           <div className="empty softEmpty">
             <div className="emptyTitle">표시할 목표가 없습니다</div>
             <div className="emptyText">
@@ -769,81 +839,22 @@ export default function GoalList({
             </div>
           </div>
         ) : (
-          visibleGoals.map((g) => {
-            const pct = calcProgress(g);
-            const isCompleted = pct === 100;
-            const total = g.tasks.length;
-            const done = g.tasks.filter((task) => calcTaskProgress(task) === 100).length;
-            const category = getCategory(categories, g.categoryId);
-            const categoryColor = getCategoryColor(category);
-            const categoryEmoji = getCategoryEmoji(category);
-            const nextAction = getNextAction(g);
-
-            return (
-              <div
-                key={g.id}
-                className={`card softGoalCard ${isCompleted ? "completed" : ""}`}
-                style={{ "--category-color": categoryColor }}
-              >
-                <div
-                  className="cardMain softGoalCardMain"
-                  onClick={() => onOpenGoal(g.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") onOpenGoal(g.id);
-                  }}
-                >
-                  {category && (
-                    <div className="categoryBadge softCategoryBadge">
-                      {category.name}
-                    </div>
-                  )}
-
-                  <div className="softGoalBody">
-                    <div className="goalEmojiBadge" aria-hidden="true">
-                      {categoryEmoji}
-                    </div>
-
-                    <div className="softGoalTextBlock">
-                      <div className="cardTitle softGoalTitle">{g.title}</div>
-
-                      <div className="cardMeta softGoalMeta">
-                        <span className="pct">{pct}%</span>
-                        <span className="dot">•</span>
-                        <span className="metaText">
-                          {done}/{total} tasks
-                        </span>
-                      </div>
-
-                      <div className="nextActionText">
-                        다음: {nextAction}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="barWrap softBarWrap" aria-hidden="true">
-                    <div className="bar softBar" style={{ width: `${pct}%` }} />
-                  </div>
-                </div>
-
-                <button
-                  className="iconBtn danger softGoalDeleteBtn"
-                  type="button"
-                  aria-label="목표 삭제"
-                  title="삭제"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteGoal(g.id);
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-            );
-          })
+          renderGoalCards(activeGoals)
         )}
       </section>
+
+      {completedGoals.length > 0 && (
+        <details className="completedGoals">
+          <summary className="completedGoalsToggle">
+            <span>다 한 할 일</span>
+            <span className="completedGoalsCount">{completedGoals.length}</span>
+          </summary>
+
+          <div className="list goalCardList completedGoalCardList">
+            {renderGoalCards(completedGoals)}
+          </div>
+        </details>
+      )}
     </div>
   );
 }

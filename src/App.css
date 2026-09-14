@@ -423,6 +423,12 @@ body {
   gap: 8px;
 }
 
+.taskGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .taskRow {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 36px 36px;
@@ -1607,7 +1613,64 @@ body {
 }
 
 .goalCardList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.completedGoals {
+  border-top: 1px solid rgba(43, 43, 43, 0.10);
+  padding-top: 10px;
+}
+
+:root[data-theme="dark"] .completedGoals {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.completedGoalsToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 2px;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  list-style: none;
+}
+
+.completedGoalsToggle::-webkit-details-marker {
+  display: none;
+}
+
+.completedGoalsCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: rgba(139, 203, 106, 0.16);
+  color: #4f6748;
+  font-size: 12px;
+}
+
+.completedGoalsToggle::after {
+  content: "⌄";
+  margin-left: auto;
+  font-size: 16px;
+}
+
+.completedGoals[open] .completedGoalsToggle::after {
+  content: "⌃";
+}
+
+.completedGoalCardList {
+  margin-top: 6px;
 }
 
 .softGoalCard {
@@ -1731,6 +1794,10 @@ body {
 }
 
 @media (max-width: 620px) {
+  .goalCardList {
+    grid-template-columns: 1fr;
+  }
+
   .adhdTitle {
     font-size: 28px;
   }
